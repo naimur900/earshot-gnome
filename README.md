@@ -18,9 +18,8 @@ for noise control. Nothing is added to the top panel.
 The menu shows only what your headphones actually report, so it changes
 with the model:
 
-- **The tile**, while headphones are connected: their name and battery. With
-  noise control, a tap turns noise cancelling on, and another tap goes back to
-  the mode you had before; the tile is lit while noise cancelling is on.
+- **The tile**, while headphones are connected: their name and battery. A tap
+  opens the menu; the tile is lit while noise cancelling is on.
 - **Left and right earbuds**, each at its own edge with a bar that grows toward
   the middle. A lightning bolt marks a bud that is charging, and the bar turns
   red at 20 % or below. Over-ear headphones get one level instead.

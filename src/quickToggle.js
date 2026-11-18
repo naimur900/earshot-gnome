@@ -757,13 +757,9 @@ class HeadphoneToggle extends QuickMenuToggle {
         super.destroy();
     }
 
-    /* With noise control, a tap turns noise cancelling on or off; otherwise
-     * there is nothing to switch, and it opens the menu. */
+    /* A tap only opens the menu; noise control is switched from there. */
     _onClicked() {
-        if (this._headphone?.canToggleNoise)
-            this._headphone.toggleNoise();
-        else
-            this.menu.open();
+        this.menu.open();
     }
 
     _sync() {

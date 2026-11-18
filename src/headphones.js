@@ -40,7 +40,7 @@ function isHeadphone(info) {
 }
 
 class Headphone {
-    /* `memory` outlives the connection: {caseLevel, quietMode, activeMode}. */
+    /* `memory` outlives the connection: {caseLevel}. */
     constructor(manager, info, memory) {
         this._manager = manager;
         this._info = info;
@@ -127,7 +127,7 @@ class Headphone {
         return noise.mode === 'transparency';
     }
 
-    /* Whether a tap on the tile has two modes to switch between. */
+    /* Whether noise control has an on and an off to light the tile by. */
     get canToggleNoise() {
         const modes = this.noise?.modes ?? [];
         return (modes.some(isCancelling) && modes.some(m => !isCancelling(m))) ||
@@ -156,25 +156,6 @@ class Headphone {
             this._session?.connectDevice(address);
         else
             this._session?.disconnectDevice(address);
-    }
-
-    /* The tile's tap: noise cancelling on, or back to the mode it replaced. */
-    toggleNoise() {
-        const noise = this.noise;
-        if (!noise || !this.canToggleNoise)
-            return;
-        const {modes, mode} = noise;
-        const has = m => m && modes.includes(m);
-
-        if (!modes.some(isCancelling)) {
-            this.setNoise(mode === 'transparency' ? 'off' : 'transparency');
-        } else if (isCancelling(mode)) {
-            this.setNoise([this._memory.quietMode, 'off', 'transparency']
-                .find(m => has(m) && !isCancelling(m)));
-        } else {
-            this.setNoise([this._memory.activeMode, 'nc'].find(has) ??
-                modes.find(isCancelling));
-        }
     }
 
     /* Reads everything again, or tries the control channel again. */
@@ -249,12 +230,6 @@ class Headphone {
         const caseInfo = session.battery.case;
         if (caseInfo)
             this._memory.caseLevel = caseInfo.level;
-
-        const mode = session.noise?.mode;
-        if (mode && isCancelling(mode))
-            this._memory.activeMode = mode;
-        else if (mode)
-            this._memory.quietMode = mode;
 
         /* A channel that answers resets the tries. */
         this._attempt = 0;
