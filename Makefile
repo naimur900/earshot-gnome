@@ -35,7 +35,7 @@ check:
 	@for f in $(SRC)/*.js $(SRC)/backends/*.js; do \
 		node --check "$$f" >/dev/null 2>&1 && echo "ok   $$f" || { echo "FAIL $$f"; node --check "$$f"; exit 1; }; \
 	done
-	@python3 -c "import json;json.load(open('$(SRC)/metadata.json'))" && echo "ok   metadata.json"
+	@python3 -c "import json,sys;m=json.load(open('$(SRC)/metadata.json'));miss=[k for k in ('uuid','name','description','shell-version','url') if not m.get(k)];sys.exit('FAIL metadata.json missing: '+', '.join(miss)) if miss else None" && echo "ok   metadata.json"
 
 # Protocol tests against frames captured from real earbuds; no shell or
 # Bluetooth needed.
