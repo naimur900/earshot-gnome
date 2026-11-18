@@ -6,7 +6,11 @@
  * edge beside its bud, over a bar that grows from that edge toward the
  * middle, and the case sits between them, quieter. Under that, the noise
  * control modes share one track, where the accent pill slides to the mode
- * picked; noise cancelling's levels get a smaller track of their own. */
+ * picked; noise cancelling's levels get a smaller track of their own.
+ *
+ * Nothing scrolls the quick settings, so on a short screen a tall menu runs
+ * off the bottom. Everything between the menu's header and Bluetooth
+ * Settings scrolls instead, given only the room the screen has left. */
 
 import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
@@ -14,6 +18,7 @@ import GObject from 'gi://GObject';
 import Pango from 'gi://Pango';
 import St from 'gi://St';
 
+import {ensureActorVisibleInScrollView} from 'resource:///org/gnome/shell/misc/animationUtils.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import {QuickMenuToggle, SystemIndicator} from 'resource:///org/gnome/shell/ui/quickSettings.js';
@@ -27,6 +32,9 @@ const LOW_BATTERY = 20;
 const DIM_OPACITY = 130;
 /* The accent pill's slide to a newly picked mode. */
 const SLIDE_MS = 200;
+/* The least the scrolling middle of the menu is given, in logical pixels,
+ * however short the screen: less would show too little to scroll through. */
+const MIN_SCROLL_HEIGHT = 120;
 
 const PART_ICONS = {
     left: 'earbud-left-symbolic',
@@ -685,6 +693,62 @@ const ConnectionsItem = GObject.registerClass({
     }
 });
 
+/* As tall as its content up to setMaxHeight(), and scrolling past that. The
+ * shell opens a menu to the least height it asks for, which a plain scroll
+ * view puts at nothing, so this one asks for a single height. */
+const FitScrollView = GObject.registerClass(
+class FitScrollView extends St.ScrollView {
+    _init(params) {
+        super._init({
+            hscrollbar_policy: St.PolicyType.NEVER,
+            vscrollbar_policy: St.PolicyType.AUTOMATIC,
+            /* Drawn over the items' own side padding, so the scrollbar takes
+             * no width from them. */
+            overlay_scrollbars: true,
+            ...params,
+        });
+        this._maxHeight = -1;
+    }
+
+    setMaxHeight(height) {
+        if (height === this._maxHeight)
+            return;
+        this._maxHeight = height;
+        this.queue_relayout();
+    }
+
+    vfunc_get_preferred_height(forWidth) {
+        let [, natural] = super.vfunc_get_preferred_height(forWidth);
+        if (this._maxHeight >= 0)
+            natural = Math.min(natural, this._maxHeight);
+        return [natural, natural];
+    }
+});
+
+/* The menu's middle. A section, so the menu items in it still belong to the
+ * menu, whose box sits in a FitScrollView rather than straight in the menu. */
+class ScrollingSection extends PopupMenu.PopupMenuSection {
+    constructor() {
+        super();
+        this.actor = new FitScrollView({style_class: 'hc-scroll', child: this.box});
+        this.actor._delegate = this;
+    }
+
+    setMaxHeight(height) {
+        this.actor.setMaxHeight(height);
+    }
+
+    scrollToTop() {
+        this.actor.vadjustment.value = 0;
+    }
+
+    /* Scrolls `actor`, which has the key focus, into view if it is in here. */
+    reveal(actor) {
+        if (actor && this.box.contains(actor))
+            ensureActorVisibleInScrollView(this.actor, actor);
+    }
+}
+
 const HeadphoneToggle = GObject.registerClass(
 class HeadphoneToggle extends QuickMenuToggle {
     _init(manager) {
@@ -703,31 +767,49 @@ class HeadphoneToggle extends QuickMenuToggle {
 
         this.menu.setHeader('audio-headphones-symbolic', _('Headphones'));
 
-        /* Straight into the menu's box, in order, ahead of the menu items. */
+        /* Everything up to Bluetooth Settings, which stays in sight below. */
+        this._middle = new ScrollingSection();
+        this.menu.addMenuItem(this._middle);
+
+        /* Straight into the section's box, in order, ahead of the menu items. */
         this._batteryItem = new BatteryItem();
-        this.menu.box.add_child(this._batteryItem);
+        this._middle.box.add_child(this._batteryItem);
 
         this._noiseItem = new NoiseItem();
         this._noiseItem.connectObject(
             'mode-activated', (_item, mode) => this._headphone?.setNoise(mode),
             'level-activated', (_item, level) => this._headphone?.setNoise('nc', level),
             this);
-        this.menu.box.add_child(this._noiseItem);
+        this._middle.box.add_child(this._noiseItem);
 
         this._connectionsItem = new ConnectionsItem();
         this._connectionsItem.connectObject('activated',
             (_item, address, connect) => this._headphone?.setConnection(address, connect),
             this);
-        this.menu.box.add_child(this._connectionsItem);
+        this._middle.box.add_child(this._connectionsItem);
 
         this._devicesSeparator = new PopupMenu.PopupSeparatorMenuItem();
-        this.menu.addMenuItem(this._devicesSeparator);
+        this._middle.addMenuItem(this._devicesSeparator);
         this._devicesSection = new PopupMenu.PopupMenuSection();
-        this.menu.addMenuItem(this._devicesSection);
+        this._middle.addMenuItem(this._devicesSection);
 
         this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
         this.menu.addSettingsAction(_('Bluetooth Settings'),
             'gnome-bluetooth-panel.desktop');
+
+        /* The shell eases the menu open to the height it asks for as it
+         * opens, so the middle must know its room just before. */
+        const open = this.menu.open.bind(this.menu);
+        this.menu.open = animate => {
+            this._fitToScreen();
+            open(animate);
+        };
+
+        /* Keyboard focus moving onto a control scrolled out of sight. */
+        global.stage.connectObject('notify::key-focus', () => {
+            if (this.menu.isOpen)
+                this._middle.reveal(global.stage.key_focus);
+        }, this);
 
         this.connect('clicked', () => this._onClicked());
         this._manager.connectObject('changed', () => this._sync(), this);
@@ -738,6 +820,7 @@ class HeadphoneToggle extends QuickMenuToggle {
      * and the shell does not destroy it with the tile. Only the indicator
      * destroys the tile, always through here. */
     destroy() {
+        global.stage.disconnectObject(this);
         this._manager.disconnectObject(this);
         this._manager = null;
         this._headphone = null;
@@ -752,6 +835,8 @@ class HeadphoneToggle extends QuickMenuToggle {
         this._devicesSection = null;
         this._devicesSeparator.destroy();
         this._devicesSeparator = null;
+        this._middle.destroy();
+        this._middle = null;
         this.menu.destroy();
 
         super.destroy();
@@ -760,6 +845,39 @@ class HeadphoneToggle extends QuickMenuToggle {
     /* A tap only opens the menu; noise control is switched from there. */
     _onClicked() {
         this.menu.open();
+    }
+
+    /* Opening, the menu pushes the quick settings' bottom edge down by its
+     * own height. Lets the middle grow only as far as keeps that edge on
+     * screen, as far above the screen's bottom as the quick settings sit
+     * below the top bar. Measured with the menu shut, so the quick settings
+     * stand without it. */
+    _fitToScreen() {
+        const quickSettings = Main.panel.statusArea.quickSettings.menu.box;
+        if (!quickSettings.mapped)
+            return;
+
+        const [, top] = quickSettings.get_transformed_position();
+        const [, height] = quickSettings.get_transformed_size();
+        const workArea = Main.layoutManager.getWorkAreaForMonitor(
+            Main.layoutManager.findIndexForActor(this));
+        const margin = Math.max(top - workArea.y, 0);
+        const room = workArea.y + workArea.height - margin - (top + height);
+
+        /* Shown, as open() is about to, at the height it has: hidden since it
+         * was made or last shut, it has not taken its style, and measures
+         * short without its margin and the header's spacing. */
+        this.menu.actor.show();
+
+        /* The rest of the menu: header, Bluetooth Settings, padding. Both at
+         * their natural width, so the middle measures the same in each. */
+        const [, menuHeight] = this.menu.box.get_preferred_height(-1);
+        const [, middleHeight] = this._middle.actor.get_preferred_height(-1);
+        const rest = menuHeight - middleHeight;
+
+        const {scale_factor: scale} = St.ThemeContext.get_for_stage(global.stage);
+        this._middle.setMaxHeight(Math.max(room - rest, MIN_SCROLL_HEIGHT * scale));
+        this._middle.scrollToTop();
     }
 
     _sync() {

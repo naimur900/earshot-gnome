@@ -243,3 +243,10 @@
 .hc-levels .hc-toggle {
   padding: 6px 4px;
 }
+
+/* ---------- The menu's middle, which scrolls on a short screen ---------- */
+
+/* Fades out an edge only while there is more to scroll to beyond it. */
+.hc-scroll {
+  -st-vfade-offset: 24px;
+}
