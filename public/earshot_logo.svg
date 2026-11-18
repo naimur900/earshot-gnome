@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="500" height="500" viewBox="0 0 500 500">
+  <!-- Same black-to-gold ramp as the Media Controls logo, dark at the bottom left. -->
+  <defs>
+    <linearGradient id="gold" gradientUnits="userSpaceOnUse" x1="185" y1="350" x2="320" y2="150">
+      <stop offset="0" stop-color="#000000"/>
+      <stop offset="0.12" stop-color="#030200"/>
+      <stop offset="0.5" stop-color="#8a4a0a"/>
+      <stop offset="0.82" stop-color="#f98619"/>
+      <stop offset="1" stop-color="#fd9a2a"/>
+    </linearGradient>
+  </defs>
+  <g fill="url(#gold)">
+    <!-- Headband: one stroke from cup to cup, ending inside the cups. -->
+    <path d="M158 290V262a92 92 0 0 1 184 0V290" fill="none" stroke="url(#gold)" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="144" y="252" width="62" height="94" rx="27"/>
+    <rect x="294" y="252" width="62" height="94" rx="27"/>
+  </g>
+</svg>
