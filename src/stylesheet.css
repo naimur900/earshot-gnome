@@ -1,0 +1,245 @@
+/* Earshot
+ *
+ * Everything sits in the shell's own quick settings menu and takes its text
+ * color from the theme, so the light and dark styles both work from one
+ * file. Fills are neutral grey at low alpha, which reads on either; the
+ * picked noise mode and the battery bars wear the desktop's accent color, as
+ * the shell's own toggles do. Charging and low levels show on the bars only:
+ * no one green or red stays readable as text on both backgrounds. */
+
+/* ---------- Battery: the stereo meter ---------- */
+
+/* The theme's menu items are inset 12px; these line up with them. The room
+ * above parts the meter from the header, the room below from the switcher. */
+.hc-battery-item {
+  padding: 10px 12px 22px;
+}
+
+.hc-meter {
+  spacing: 16px;
+}
+
+.hc-readouts {
+  spacing: 8px;
+}
+
+.hc-readout {
+  spacing: 6px;
+}
+
+.hc-readout-caption {
+  spacing: 6px;
+}
+
+.hc-readout-icon {
+  icon-size: 16px;
+}
+
+.hc-readout-label {
+  font-size: 0.818em;
+  font-weight: 500;
+}
+
+.hc-readout-value-row {
+  spacing: 3px;
+}
+
+.hc-readout-value {
+  font-size: 1.6em;
+  font-weight: 700;
+  font-feature-settings: "tnum";
+}
+
+/* A step down from the number, as Pango's "smaller" would make it. */
+.hc-readout-unit {
+  font-size: 1.33em;
+  font-weight: 700;
+}
+
+.hc-readout-bolt {
+  icon-size: 14px;
+}
+
+/* The case holds the buds; it reads quieter than they do. */
+.hc-readout-minor .hc-readout-value {
+  font-size: 1.15em;
+  font-weight: 600;
+}
+
+.hc-readout-minor .hc-readout-unit {
+  font-size: 0.96em;
+  font-weight: 600;
+}
+
+.hc-readout-minor .hc-readout-bolt {
+  icon-size: 12px;
+}
+
+/* The gap between the two bars is the meter's centre line. */
+.hc-bars {
+  spacing: 20px;
+}
+
+.hc-bar {
+  height: 5px;
+  border-radius: 99px;
+  background-color: rgba(127, 127, 127, 0.22);
+}
+
+.hc-bar-fill {
+  border-radius: 99px;
+  background-color: -st-accent-color;
+}
+
+.hc-bar.hc-charging .hc-bar-fill {
+  background-color: #2ec27e;
+}
+
+.hc-bar.hc-low .hc-bar-fill {
+  background-color: #e01b24;
+}
+
+/* ---------- Noise control ---------- */
+
+.hc-noise-item {
+  padding: 0 12px 10px;
+  spacing: 8px;
+}
+
+.hc-toggle-group {
+  padding: 4px;
+  border-radius: 16px;
+  background-color: rgba(127, 127, 127, 0.14);
+}
+
+.hc-toggle-row {
+  spacing: 4px;
+}
+
+.hc-toggle-highlight {
+  border-radius: 12px;
+  background-color: -st-accent-color;
+}
+
+/* Wide padding at the sides: the modes take their labels' width, and this
+ * is what is left around a short one like "Off". */
+.hc-toggle {
+  padding: 7px 10px;
+  border-radius: 12px;
+}
+
+.hc-modes.hc-crowded .hc-toggle {
+  padding: 7px 6px;
+}
+
+.hc-toggle:hover {
+  background-color: rgba(127, 127, 127, 0.16);
+}
+
+.hc-toggle:active {
+  background-color: rgba(127, 127, 127, 0.26);
+}
+
+/* The pill under it is the fill; the button only changes its ink. */
+.hc-toggle:checked,
+.hc-toggle:checked:hover,
+.hc-toggle:checked:active {
+  color: -st-accent-fg-color;
+  background-color: transparent;
+}
+
+.hc-toggle:focus {
+  box-shadow: inset 0 0 0 2px -st-accent-color;
+}
+
+.hc-toggle:checked:focus {
+  box-shadow: inset 0 0 0 2px -st-accent-fg-color;
+}
+
+.hc-toggle-content {
+  spacing: 3px;
+}
+
+.hc-toggle-icon {
+  icon-size: 16px;
+}
+
+.hc-toggle-label {
+  font-size: 0.818em;
+  font-weight: 600;
+  text-align: center;
+}
+
+.hc-noise-hint {
+  padding: 0 4px;
+  font-size: 0.818em;
+}
+
+/* ---------- Connections: the other devices the buds are linked with ---------- */
+
+.hc-connections {
+  padding: 6px 12px 8px;
+  spacing: 4px;
+}
+
+.hc-connections-title {
+  padding: 0 4px;
+  font-size: 0.818em;
+  font-weight: 600;
+}
+
+.hc-connection {
+  padding: 6px 4px;
+  spacing: 12px;
+}
+
+.hc-connection-icon {
+  icon-size: 16px;
+}
+
+.hc-connection-name {
+  font-weight: 500;
+}
+
+.hc-connection-status {
+  font-size: 0.818em;
+}
+
+.hc-connection-action {
+  padding: 5px 12px;
+  border-radius: 99px;
+  font-size: 0.818em;
+  font-weight: 600;
+  background-color: rgba(127, 127, 127, 0.16);
+}
+
+.hc-connection-action:hover {
+  background-color: rgba(127, 127, 127, 0.26);
+}
+
+.hc-connection-action:active {
+  background-color: rgba(127, 127, 127, 0.36);
+}
+
+.hc-connection-action:focus {
+  box-shadow: inset 0 0 0 2px -st-accent-color;
+}
+
+.hc-connection-action:insensitive {
+  color: rgba(127, 127, 127, 0.8);
+}
+
+/* Noise cancelling's levels: the same control, a size down. */
+.hc-levels {
+  padding: 3px;
+  border-radius: 14px;
+}
+
+.hc-levels .hc-toggle-highlight,
+.hc-levels .hc-toggle {
+  border-radius: 11px;
+}
+
+.hc-levels .hc-toggle {
+  padding: 6px 4px;
+}

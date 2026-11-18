@@ -1,0 +1,8 @@
+{
+  "uuid": "earshot@naimur",
+  "name": "Earshot",
+  "description": "Your Bluetooth headphones in the quick settings. See the battery of each earbud and of the charging case, and switch noise control between off, transparency, noise cancelling and the other modes your headphones have. Full controls for realme, OnePlus, OPPO, Sony, Samsung Galaxy Buds, AirPods, Bose, Nothing, Xiaomi and Soundcore; other headphones show the battery level they report. The menu shows only what your headphones report.",
+  "shell-version": ["47", "48", "49", "50", "51"],
+  "gettext-domain": "earshot",
+  "version-name": "1.0"
+}
