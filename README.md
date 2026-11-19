@@ -20,6 +20,9 @@ with the model:
 
 - **The tile**, while headphones are connected: their name and battery. A tap
   opens the menu; the tile is lit while noise cancelling is on.
+- **The menu's header**: the model, with its maker under it when the name or
+  protocol gives it away, and a Bluetooth button in the corner that opens
+  Bluetooth Settings.
 - **Left and right earbuds**, each in a column of its own: the bud's glyph over
   its level, and a bar under them. A bar glows while its part is charging, and
   turns red at 20 % or below. Over-ear headphones get one level instead.
@@ -116,6 +119,7 @@ has, which most headphones report through the hands-free profile.
 | `src/headphones.js` | Which headphones are connected, and their control channels. |
 | `src/session.js` | One open control channel: socket, send queue, shared state. |
 | `src/noise.js` | The noise control modes and levels every brand reports in. |
+| `src/brands.js` | The maker and model, from the name the headphones go by. |
 | `src/bluez.js` | BlueZ's devices and calls into BlueZ. |
 | `src/profile.js` | The BlueZ profile that receives a control channel. |
 | `src/backends/` | One file per brand, and `index.js`, which picks one for a device. |

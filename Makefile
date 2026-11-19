@@ -7,7 +7,7 @@ ZIP     = $(UUID).shell-extension.zip
 SHEXLI_VENV = .shexli-venv
 
 # Modules besides extension.js, which `gnome-extensions pack` takes on its own.
-MODULES = bluez.js compat.js headphones.js noise.js profile.js quickToggle.js session.js
+MODULES = bluez.js brands.js compat.js headphones.js noise.js profile.js quickToggle.js session.js
 
 .PHONY: all install uninstall enable disable pack check test shexli clean-shexli logs clean
 
@@ -42,6 +42,7 @@ check:
 test:
 	gjs -m tests/oppo.test.js
 	gjs -m tests/backends.test.js
+	gjs -m tests/brands.test.js
 
 pack:
 	rm -f $(ZIP)

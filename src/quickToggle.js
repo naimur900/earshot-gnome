@@ -9,13 +9,15 @@
  * levels get a smaller track of their own.
  *
  * Nothing scrolls the quick settings, so on a short screen a tall menu runs
- * off the bottom. Everything between the menu's header and Bluetooth
- * Settings scrolls instead, given only the room the screen has left. */
+ * off the bottom. Everything under the menu's header scrolls instead, given
+ * only the room the screen has left. Bluetooth Settings is a button in the
+ * header's corner. */
 
 import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
 import Pango from 'gi://Pango';
+import Shell from 'gi://Shell';
 import St from 'gi://St';
 
 import {ensureActorVisibleInScrollView} from 'resource:///org/gnome/shell/misc/animationUtils.js';
@@ -36,6 +38,8 @@ const BAR_SPAN = 0.64;
 const CASE_BAR_SPAN = 0.47;
 /* A charging bar's glow, swelling or fading. */
 const GLOW_MS = 1200;
+/* Opened from the button in the menu's header. */
+const SETTINGS_APP = 'gnome-bluetooth-panel.desktop';
 /* The accent pill's slide to a newly picked mode. */
 const SLIDE_MS = 200;
 /* The least the scrolling middle of the menu is given, in logical pixels,
@@ -821,8 +825,9 @@ class HeadphoneToggle extends QuickMenuToggle {
         this._devicesKey = null;
 
         this.menu.setHeader('audio-headphones-symbolic', _('Headphones'));
+        this._addSettingsButton();
 
-        /* Everything up to Bluetooth Settings, which stays in sight below. */
+        /* Everything under the header, which stays in sight above. */
         this._middle = new ScrollingSection();
         this.menu.addMenuItem(this._middle);
 
@@ -848,10 +853,6 @@ class HeadphoneToggle extends QuickMenuToggle {
         this._devicesSection = new PopupMenu.PopupMenuSection();
         this._middle.addMenuItem(this._devicesSection);
 
-        this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
-        this.menu.addSettingsAction(_('Bluetooth Settings'),
-            'gnome-bluetooth-panel.desktop');
-
         /* The shell eases the menu open to the height it asks for as it
          * opens, so the middle must know its room just before. */
         const open = this.menu.open.bind(this.menu);
@@ -876,6 +877,7 @@ class HeadphoneToggle extends QuickMenuToggle {
      * destroys the tile, always through here. */
     destroy() {
         global.stage.disconnectObject(this);
+        Main.sessionMode.disconnectObject(this);
         this._manager.disconnectObject(this);
         this._manager = null;
         this._headphone = null;
@@ -895,6 +897,45 @@ class HeadphoneToggle extends QuickMenuToggle {
         this.menu.destroy();
 
         super.destroy();
+    }
+
+    /* Bluetooth Settings, as a button in the header's far corner. Shown, as
+     * the shell's own settings items are, only where the session allows. */
+    _addSettingsButton() {
+        const button = new St.Button({
+            style_class: 'icon-button flat hc-settings-button',
+            child: new St.Icon({icon_name: 'bluetooth-active-symbolic'}),
+            can_focus: true,
+            y_align: Clutter.ActorAlign.CENTER,
+            accessible_name: _('Bluetooth Settings'),
+        });
+        button.connect('clicked', () => {
+            const app = Shell.AppSystem.get_default().lookup_app(SETTINGS_APP);
+            if (!app)
+                return;
+            Main.overview.hide();
+            Main.panel.closeQuickSettings();
+            app.activate();
+        });
+
+        const sync = () => {
+            button.visible = Main.sessionMode.allowSettings;
+        };
+        Main.sessionMode.connectObject('updated', sync, this);
+        sync();
+
+        /* Past the spacer at the header's end, beside the menu's edge, and
+         * down both of its rows. The shell's addHeaderSuffix() would put it
+         * right after the title; it is the way in if the header changes. */
+        const {_header: header, _headerSpacer: spacer} = this.menu;
+        if (header?.layout_manager instanceof Clutter.GridLayout &&
+            spacer?.get_parent() === header) {
+            const side = this.menu.actor.text_direction === Clutter.TextDirection.RTL
+                ? Clutter.GridPosition.LEFT : Clutter.GridPosition.RIGHT;
+            header.layout_manager.attach_next_to(button, spacer, side, 1, 2);
+        } else {
+            this.menu.addHeaderSuffix(button);
+        }
     }
 
     /* A tap only opens the menu; noise control is switched from there. */
@@ -924,7 +965,7 @@ class HeadphoneToggle extends QuickMenuToggle {
          * short without its margin and the header's spacing. */
         this.menu.actor.show();
 
-        /* The rest of the menu: header, Bluetooth Settings, padding. Both at
+        /* The rest of the menu: header and padding. Both at
          * their natural width, so the middle measures the same in each. */
         const [, menuHeight] = this.menu.box.get_preferred_height(-1);
         const [, middleHeight] = this._middle.actor.get_preferred_height(-1);
@@ -960,7 +1001,10 @@ class HeadphoneToggle extends QuickMenuToggle {
              * while connected, as there is nothing to turn off. */
             checked: headphone.canToggleNoise ? headphone.noiseOn : true,
         });
-        this.menu.setHeader(headphone.iconName, name, summary ?? _('Connected'));
+        /* The model, and its maker under it where known. What noise control
+         * is doing, the switcher shows. */
+        const {brand, model} = headphone.identity;
+        this.menu.setHeader(headphone.iconName, model || name, brand ?? '');
 
         this._batteryItem.update(batteries, headphone.iconName);
         this._noiseItem.update(noise);

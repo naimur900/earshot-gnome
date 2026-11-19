@@ -9,6 +9,7 @@ import GObject from 'gi://GObject';
 
 import {findBackend} from './backends/index.js';
 import {BluezClient} from './bluez.js';
+import {identify} from './brands.js';
 import {isCancelling} from './noise.js';
 import {VendorProfile} from './profile.js';
 
@@ -60,6 +61,12 @@ class Headphone {
 
     get name() {
         return this._info.alias || this._info.name;
+    }
+
+    /* {brand, model}: the maker, or null, and the name without it. */
+    get identity() {
+        const {name, alias} = this._info;
+        return identify({name, alias, backend: this._match?.backend.id ?? null});
     }
 
     get iconName() {
