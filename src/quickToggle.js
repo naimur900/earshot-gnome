@@ -824,7 +824,11 @@ class HeadphoneToggle extends QuickMenuToggle {
         this._selectedPath = null;
         this._devicesKey = null;
 
-        this.menu.setHeader('audio-headphones-symbolic', _('Headphones'));
+        /* The header's icon, whatever kind of headphones; the stylesheet
+         * sizes it to match the Bluetooth Settings button across from it. */
+        this._menuIcon = bundledIcon('headphones-symbolic');
+        this.menu.box.add_style_class_name('hc-menu');
+        this.menu.setHeader(this._menuIcon, _('Headphones'));
         this._addSettingsButton();
 
         /* Everything under the header, which stays in sight above. */
@@ -1004,7 +1008,7 @@ class HeadphoneToggle extends QuickMenuToggle {
         /* The model, and its maker under it where known. What noise control
          * is doing, the switcher shows. */
         const {brand, model} = headphone.identity;
-        this.menu.setHeader(headphone.iconName, model || name, brand ?? '');
+        this.menu.setHeader(this._menuIcon, model || name, brand ?? '');
 
         this._batteryItem.update(batteries, headphone.iconName);
         this._noiseItem.update(noise);

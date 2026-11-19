@@ -7,6 +7,16 @@
  * the shell's own toggles do. Charging and low levels show on the bars only:
  * no one green or red stays readable as text on both backgrounds. */
 
+/* ---------- Header ---------- */
+
+/* The headphones' icon, at the top left: the same glyph size and circle as
+ * the Bluetooth Settings button (the shell's .icon-button) at the top right,
+ * in place of the shell's larger header icon. */
+.quick-toggle-menu.hc-menu .header .icon {
+  icon-size: 1.091em;
+  padding: 0.818em;
+}
+
 /* ---------- Battery: the meter ---------- */
 
 /* Its columns span the menu's whole width, so each part sits centred in a
