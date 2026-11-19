@@ -10,7 +10,7 @@ for noise control. Nothing is added to the top panel.
 </p>
 
 <p align="center">
-  <img src="public/showcase.png" alt="The quick settings with the headphones tile lit for noise cancelling, and its menu open: left 82 %, case 64 % and charging, right 76 %, and noise control set to Smart noise cancelling, in the dark and light styles" width="700">
+  <img src="public/showcase.png" alt="The quick settings with the headphones tile lit for noise cancelling, and its menu open under the model and its maker: left 100 %, case 60 %, right 100 %, and noise control set to ANC at the Smart level, in the dark and light styles" width="700">
 </p>
 
 ## What it shows

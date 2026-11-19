@@ -811,24 +811,27 @@ class ScrollingSection extends PopupMenu.PopupMenuSection {
 const HeadphoneToggle = GObject.registerClass(
 class HeadphoneToggle extends QuickMenuToggle {
     _init(manager) {
+        /* The tile's and the header's icon, whatever kind of headphones. */
+        const icon = bundledIcon('headphones-symbolic');
+
         super._init({
             title: _('Headphones'),
-            iconName: 'audio-headphones-symbolic',
+            gicon: icon,
             toggleMode: false,
             visible: false,
         });
 
         this._manager = manager;
         this._headphone = null;
+        this._headphonesIcon = icon;
         /* The one picked from the list when several are connected. */
         this._selectedPath = null;
         this._devicesKey = null;
 
-        /* The header's icon, whatever kind of headphones; the stylesheet
-         * sizes it to match the Bluetooth Settings button across from it. */
-        this._menuIcon = bundledIcon('headphones-symbolic');
+        /* The stylesheet sizes the header's icon to match the Bluetooth
+         * Settings button across from it. */
         this.menu.box.add_style_class_name('hc-menu');
-        this.menu.setHeader(this._menuIcon, _('Headphones'));
+        this.menu.setHeader(icon, _('Headphones'));
         this._addSettingsButton();
 
         /* Everything under the header, which stays in sight above. */
@@ -1000,7 +1003,6 @@ class HeadphoneToggle extends QuickMenuToggle {
         this.set({
             title: name,
             subtitle: this._batterySummary(batteries) ?? summary,
-            iconName: headphone.iconName,
             /* Lit for noise cancelling; headphones without a switch are lit
              * while connected, as there is nothing to turn off. */
             checked: headphone.canToggleNoise ? headphone.noiseOn : true,
@@ -1008,7 +1010,7 @@ class HeadphoneToggle extends QuickMenuToggle {
         /* The model, and its maker under it where known. What noise control
          * is doing, the switcher shows. */
         const {brand, model} = headphone.identity;
-        this.menu.setHeader(this._menuIcon, model || name, brand ?? '');
+        this.menu.setHeader(this._headphonesIcon, model || name, brand ?? '');
 
         this._batteryItem.update(batteries, headphone.iconName);
         this._noiseItem.update(noise);
