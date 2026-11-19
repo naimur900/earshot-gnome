@@ -2,11 +2,11 @@
 /* quickToggle.js: the headphones' tile in the quick settings, and its menu.
  * Nothing goes on the panel.
  *
- * The menu reads the two buds as a stereo pair: each level sits at its own
- * edge beside its bud, over a bar that grows from that edge toward the
- * middle, and the case sits between them, quieter. Under that, the noise
- * control modes share one track, where the accent pill slides to the mode
- * picked; noise cancelling's levels get a smaller track of their own.
+ * The menu reads the buds and their case as a row of three columns, ruled
+ * apart: each part's glyph over its level, and under them its own bar, the
+ * case's a little shorter. Under that, the noise control modes share one
+ * track, where the accent pill slides to the mode picked; noise cancelling's
+ * levels get a smaller track of their own.
  *
  * Nothing scrolls the quick settings, so on a short screen a tall menu runs
  * off the bottom. Everything between the menu's header and Bluetooth
@@ -30,6 +30,12 @@ import {boxOrientation} from './compat.js';
 const LOW_BATTERY = 20;
 /* A level that is not live: the shut case's earlier one, or none at all. */
 const DIM_OPACITY = 130;
+/* Each bar's share of its column's width. The case's is narrower: it holds
+ * the buds, and reads quieter than they do. */
+const BAR_SPAN = 0.64;
+const CASE_BAR_SPAN = 0.47;
+/* A charging bar's glow, swelling or fading. */
+const GLOW_MS = 1200;
 /* The accent pill's slide to a newly picked mode. */
 const SLIDE_MS = 200;
 /* The least the scrolling middle of the menu is given, in logical pixels,
@@ -158,55 +164,119 @@ function setClass(actor, name, on) {
         actor.remove_style_class_name(name);
 }
 
-/* A rounded bar filled to a fraction of its width, from its start or, for
- * the right bud, from its end. */
+/* A rounded bar filled from its start to a fraction of its track. The track
+ * takes a share of the bar's width, centred in it. While its part charges, a
+ * glow swells toward the end of the fill and fades, over and over. */
 const LevelBar = GObject.registerClass(
 class LevelBar extends St.Widget {
-    _init(fromEnd = false) {
-        super._init({style_class: 'hc-bar', x_expand: true});
-        this._fromEnd = fromEnd;
+    _init(span) {
+        super._init({style_class: 'hc-level', x_expand: true});
+        this._span = span;
         this._fraction = 0;
+
+        this._track = new St.Widget({style_class: 'hc-bar'});
         this._fill = new St.Widget({style_class: 'hc-bar-fill'});
+        this._glow = new St.Widget({style_class: 'hc-bar-glow', visible: false});
+        this.add_child(this._track);
         this.add_child(this._fill);
+        this.add_child(this._glow);
+
+        /* Glows only while it can be seen: from when the glow itself is
+         * mapped, as the bar is mapped before its children are, and an ease
+         * on an unmapped actor jumps straight to its end. */
+        this._glow.connect('notify::mapped', () => this._animateGlow());
     }
 
-    setFraction(fraction) {
+    setLevel(fraction, {charging, low}) {
         fraction = Math.clamp(fraction, 0, 1);
-        if (fraction === this._fraction)
+        if (fraction !== this._fraction) {
+            this._fraction = fraction;
+            this.queue_relayout();
+        }
+        setClass(this, 'hc-low', low);
+        this._glow.visible = charging;
+    }
+
+    _animateGlow() {
+        const glow = this._glow;
+        glow.remove_all_transitions();
+        if (!glow.mapped)
             return;
-        this._fraction = fraction;
-        this.queue_relayout();
+
+        /* With animations off, it stays lit. */
+        if (!St.Settings.get().enable_animations) {
+            glow.opacity = 255;
+            return;
+        }
+        glow.opacity = 0;
+        glow.ease({
+            opacity: 255,
+            duration: GLOW_MS,
+            mode: Clutter.AnimationMode.EASE_IN_OUT_SINE,
+            autoReverse: true,
+            repeatCount: -1,
+        });
     }
 
     vfunc_allocate(box) {
         this.set_allocation(box);
         const content = this.get_theme_node().get_content_box(box);
-        const fill = content.copy();
-        const width = Math.round((content.x2 - content.x1) * this._fraction);
-        if (this._fromEnd)
-            fill.x1 = fill.x2 - width;
-        else
-            fill.x2 = fill.x1 + width;
+        const width = content.x2 - content.x1;
+
+        const track = content.copy();
+        const trackWidth = Math.round(width * this._span);
+        track.x1 = content.x1 + Math.round((width - trackWidth) / 2);
+        track.x2 = track.x1 + trackWidth;
+        this._track.allocate(track);
+
+        const fill = track.copy();
+        fill.x2 = fill.x1 + Math.round(trackWidth * this._fraction);
         this._fill.allocate(fill);
+        this._glow.allocate(fill);
     }
 });
 
-/* One level: the part's glyph and name, and the number under them. Aligned
- * to the start, the middle or the end of its column, the end mirrored. */
-const Readout = GObject.registerClass(
-class Readout extends St.BoxLayout {
-    _init(align, styleClass = '') {
+/* One part of the meter, in a column of its own: the part's glyph over its
+ * level, centred, and the level's bar under them. A rule at the start edge
+ * parts it from the column before. */
+const PartColumn = GObject.registerClass(
+class PartColumn extends St.BoxLayout {
+    _init(barSpan) {
         super._init({
-            style_class: `hc-readout ${styleClass}`,
+            style_class: 'hc-column',
             ...boxOrientation(Clutter.Orientation.VERTICAL),
             x_expand: true,
         });
 
         this._part = null;
 
+        /* The rule lies over the readout's start edge, as tall as it. */
+        const top = new St.Widget({
+            layout_manager: new Clutter.BinLayout(),
+            x_expand: true,
+            y_expand: true,
+        });
+        this._readout = new St.BoxLayout({
+            style_class: 'hc-readout',
+            ...boxOrientation(Clutter.Orientation.VERTICAL),
+            x_expand: true,
+        });
+        /* Expanding, or the bin gives it only its natural size, centred. */
+        this._rule = new St.Widget({
+            style_class: 'hc-rule',
+            x_expand: true,
+            y_expand: true,
+            x_align: Clutter.ActorAlign.START,
+            visible: false,
+        });
+        top.add_child(this._readout);
+        top.add_child(this._rule);
+
+        /* The glyph says which part. The caption beside it shows only to say
+         * that the level is an old one. */
         const caption = new St.BoxLayout({
             style_class: 'hc-readout-caption',
-            x_align: align,
+            x_align: Clutter.ActorAlign.CENTER,
         });
         this._icon = new St.Icon({
             style_class: 'hc-readout-icon',
@@ -214,20 +284,16 @@ class Readout extends St.BoxLayout {
         });
         this._caption = new St.Label({
             style_class: 'hc-readout-label',
+            text: _('Last seen'),
             y_align: Clutter.ActorAlign.CENTER,
+            visible: false,
         });
-        const mirrored = align === Clutter.ActorAlign.END;
-        caption.add_child(mirrored ? this._caption : this._icon);
-        caption.add_child(mirrored ? this._icon : this._caption);
+        caption.add_child(this._icon);
+        caption.add_child(this._caption);
 
         const valueRow = new St.BoxLayout({
             style_class: 'hc-readout-value-row',
-            x_align: align,
-        });
-        this._bolt = new St.Icon({
-            style_class: 'hc-readout-bolt',
-            gicon: bundledIcon('charging-symbolic'),
-            y_align: Clutter.ActorAlign.CENTER,
+            x_align: Clutter.ActorAlign.CENTER,
         });
         /* The number and its % sign are two labels, both on the bottom edge so
          * their baselines meet. Markup would draw them in one label, but a
@@ -242,14 +308,22 @@ class Readout extends St.BoxLayout {
             /* Translators: the sign after a battery level shown large. */
             text: _('%'),
             y_align: Clutter.ActorAlign.END,
-            opacity: 140,
+            opacity: 215,
         });
-        valueRow.add_child(this._bolt);
         valueRow.add_child(this._value);
         valueRow.add_child(this._unit);
 
-        this.add_child(caption);
-        this.add_child(valueRow);
+        this._readout.add_child(caption);
+        this._readout.add_child(valueRow);
+
+        this._bar = new LevelBar(barSpan);
+
+        this.add_child(top);
+        this.add_child(this._bar);
+    }
+
+    setDivided(divided) {
+        this._rule.visible = divided;
     }
 
     /* `deviceIcon` is for the 'device' part, which has no glyph of its own. */
@@ -263,15 +337,17 @@ class Readout extends St.BoxLayout {
         this._part = part;
 
         const known = level !== null;
-        /* The glyph says which part; the caption, that its level is old. */
-        this._caption.text = stale ? _('Last seen') : partLabel(part);
+        this._caption.visible = stale;
         /* The number carries the reading; its % sign steps back. */
         this._value.text = known ? `${level}` : '—';
         this._unit.visible = known;
-        this._bolt.visible = charging;
 
-        setClass(this, 'hc-low', known && !charging && level <= LOW_BATTERY);
-        this.opacity = known && !stale ? 255 : DIM_OPACITY;
+        this._bar.setLevel(known ? level / 100 : 0, {
+            charging,
+            low: known && !charging && level <= LOW_BATTERY,
+        });
+        /* The rule stays as it is: it parts this column from the last. */
+        this._readout.opacity = this._bar.opacity = known && !stale ? 255 : DIM_OPACITY;
 
         let reading = known ? percent(level) : _('unknown');
         if (charging)
@@ -282,62 +358,41 @@ class Readout extends St.BoxLayout {
     }
 });
 
-/* The stereo meter: left and right at the edges with the case between, and
- * their bars under them. A device with one level gets one readout and bar.
+/* The meter: left bud, case and right bud in three columns of one width, or
+ * one column for headphones with a single level, each over its own bar.
  * A plain box rather than a menu item: a menu item that cannot be activated
  * is drawn insensitive, greyed out. */
 const BatteryItem = GObject.registerClass(
 class BatteryItem extends St.BoxLayout {
     _init() {
-        super._init({
-            style_class: 'hc-battery-item hc-meter',
-            ...boxOrientation(Clutter.Orientation.VERTICAL),
-            x_expand: true,
-        });
-        const meter = this;
+        super._init({style_class: 'hc-battery-item', x_expand: true});
+        this.layout_manager.homogeneous = true;
 
-        const readouts = new St.BoxLayout({style_class: 'hc-readouts', x_expand: true});
-        readouts.layout_manager.homogeneous = true;
-        this._left = new Readout(Clutter.ActorAlign.START);
-        this._case = new Readout(Clutter.ActorAlign.CENTER, 'hc-readout-minor');
-        this._right = new Readout(Clutter.ActorAlign.END);
-        this._single = new Readout(Clutter.ActorAlign.START);
-        for (const readout of [this._left, this._case, this._right, this._single])
-            readouts.add_child(readout);
-        meter.add_child(readouts);
-
-        const bars = new St.BoxLayout({style_class: 'hc-bars', x_expand: true});
-        bars.layout_manager.homogeneous = true;
-        this._leftBar = new LevelBar();
-        this._rightBar = new LevelBar(true);
-        this._singleBar = new LevelBar();
-        for (const bar of [this._leftBar, this._rightBar, this._singleBar])
-            bars.add_child(bar);
-        meter.add_child(bars);
+        /* In the order they stand, left to right. */
+        this._columns = new Map([
+            ['left', new PartColumn(BAR_SPAN)],
+            ['case', new PartColumn(CASE_BAR_SPAN)],
+            ['right', new PartColumn(BAR_SPAN)],
+            ['device', new PartColumn(BAR_SPAN)],
+        ]);
+        for (const column of this._columns.values())
+            this.add_child(column);
     }
 
     update(batteries, deviceIcon) {
         const byPart = Object.fromEntries(batteries.map(b => [b.part, b]));
-        const pairs = [
-            [this._left, this._leftBar, byPart.left],
-            [this._right, this._rightBar, byPart.right],
-            [this._single, this._singleBar, byPart.device],
-        ];
 
-        for (const [readout, bar, battery] of pairs) {
-            readout.visible = bar.visible = !!battery;
+        /* A rule before each column shown but the first. */
+        let divided = false;
+        for (const [part, column] of this._columns) {
+            const battery = byPart[part];
+            column.visible = !!battery;
             if (!battery)
                 continue;
-            readout.update(battery, deviceIcon);
-            bar.setFraction(battery.level !== null && !battery.stale ? battery.level / 100 : 0);
-            setClass(bar, 'hc-charging', battery.charging);
-            setClass(bar, 'hc-low', battery.level !== null && !battery.charging &&
-                battery.level <= LOW_BATTERY);
+            column.update(battery, deviceIcon);
+            column.setDivided(divided);
+            divided = true;
         }
-
-        this._case.visible = !!byPart.case;
-        if (byPart.case)
-            this._case.update(byPart.case, deviceIcon);
 
         this.visible = batteries.length > 0;
     }

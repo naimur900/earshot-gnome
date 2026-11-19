@@ -20,10 +20,11 @@ with the model:
 
 - **The tile**, while headphones are connected: their name and battery. A tap
   opens the menu; the tile is lit while noise cancelling is on.
-- **Left and right earbuds**, each at its own edge with a bar that grows toward
-  the middle. A lightning bolt marks a bud that is charging, and the bar turns
-  red at 20 % or below. Over-ear headphones get one level instead.
-- **The case**, between the buds, when the buds report it. The case only
+- **Left and right earbuds**, each in a column of its own: the bud's glyph over
+  its level, and a bar under them. A bar glows while its part is charging, and
+  turns red at 20 % or below. Over-ear headphones get one level instead.
+- **The case**, in a column between the buds with a shorter bar, when the buds
+  report it. The case only
   reports while it is open; once you close it you see the last level it
   reported, dimmed, captioned "Last seen". A case that has never reported is
   not shown.

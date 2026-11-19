@@ -7,24 +7,29 @@
  * the shell's own toggles do. Charging and low levels show on the bars only:
  * no one green or red stays readable as text on both backgrounds. */
 
-/* ---------- Battery: the stereo meter ---------- */
+/* ---------- Battery: the meter ---------- */
 
-/* The theme's menu items are inset 12px; these line up with them. The room
- * above parts the meter from the header, the room below from the switcher. */
+/* Its columns span the menu's whole width, so each part sits centred in a
+ * third of it. The room below parts the meter from the switcher. */
 .hc-battery-item {
-  padding: 10px 12px 22px;
+  padding: 6px 0 20px;
 }
 
-.hc-meter {
-  spacing: 16px;
+/* Between the readout and its bar. */
+.hc-column {
+  spacing: 4px;
 }
 
-.hc-readouts {
-  spacing: 8px;
-}
-
+/* Between the glyph and the number. */
 .hc-readout {
-  spacing: 6px;
+  spacing: 4px;
+}
+
+/* Parts a column from the one before; a little shorter than the readout. */
+.hc-rule {
+  width: 1px;
+  margin: 3px 0;
+  background-color: rgba(127, 127, 127, 0.55);
 }
 
 .hc-readout-caption {
@@ -45,43 +50,22 @@
 }
 
 .hc-readout-value {
-  font-size: 1.6em;
+  font-size: 1.1em;
   font-weight: 700;
   font-feature-settings: "tnum";
 }
 
-/* A step down from the number, as Pango's "smaller" would make it. */
+/* As tall as the number, and lighter. */
 .hc-readout-unit {
-  font-size: 1.33em;
-  font-weight: 700;
+  font-size: 1.1em;
+  font-weight: 400;
 }
 
-.hc-readout-bolt {
-  icon-size: 14px;
-}
-
-/* The case holds the buds; it reads quieter than they do. */
-.hc-readout-minor .hc-readout-value {
-  font-size: 1.15em;
-  font-weight: 600;
-}
-
-.hc-readout-minor .hc-readout-unit {
-  font-size: 0.96em;
-  font-weight: 600;
-}
-
-.hc-readout-minor .hc-readout-bolt {
-  icon-size: 12px;
-}
-
-/* The gap between the two bars is the meter's centre line. */
-.hc-bars {
-  spacing: 20px;
+.hc-level {
+  height: 5px;
 }
 
 .hc-bar {
-  height: 5px;
   border-radius: 99px;
   background-color: rgba(127, 127, 127, 0.22);
 }
@@ -91,12 +75,16 @@
   background-color: -st-accent-color;
 }
 
-.hc-bar.hc-charging .hc-bar-fill {
-  background-color: #2ec27e;
+.hc-level.hc-low .hc-bar-fill {
+  background-color: #e01b24;
 }
 
-.hc-bar.hc-low .hc-bar-fill {
-  background-color: #e01b24;
+/* Over a charging bar's fill: brightest at the end the level has reached. */
+.hc-bar-glow {
+  border-radius: 99px;
+  background-gradient-direction: horizontal;
+  background-gradient-start: rgba(255, 255, 255, 0);
+  background-gradient-end: rgba(255, 255, 255, 0.5);
 }
 
 /* ---------- Noise control ---------- */
